@@ -1,75 +1,101 @@
-import React, { useEffect, useState } from "react";
+import React, { Component } from "react";
+import WeatherCard from "./Components/WeatherCard";
 import axios from "axios";
 import "./App.css";
-import WeatherCard from "./Components/WeatherCard";
+export class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      city: "",
+      description: "",
+      icon: "",
+      temp: "",
+      country: "",
+      loading: false,
+      location: "",
+    };
+  }
 
-function App() {
-  const [lat, setLat] = useState("");
-  const [long, setLong] = useState("");
-
-  const [data, setData] = useState([]);
-  const [city, setCity] = useState("");
-
-  const [loading, setLoading] = useState(false);
-
-  const key = "29da4ac9ed4552e77d90788296abc187";
-  const urlCurrLoc = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${long}&units=metric&appid=${key}`;
-  const urlCity = `https://api.openweathermap.org/data/2.5/weather?q=${city}&APPID=${key}`;
-
-  const getGeoLocData = () => {
-    setLoading(true);
-    navigator.geolocation.getCurrentPosition(function (position) {
-      setLat(position.coords.latitude);
-      setLong(position.coords.longitude);
+  getCurrWeather = () => {
+    this.setState({ loading: true });
+    navigator.geolocation.getCurrentPosition((position) => {
+      const key = "29da4ac9ed4552e77d90788296abc187";
+      const urlCurrLoc = `https://api.openweathermap.org/data/2.5/weather?lat=${position.coords.latitude}&lon=${position.coords.longitude}&units=metric&appid=${key}`;
+      axios
+        .get(urlCurrLoc)
+        .then((res) => {
+          const weather = res.data;
+          this.setState({
+            city: weather.name,
+            description: weather.weather[0].description,
+            icon: weather.weather[0].icon,
+            temp: weather.main.temp,
+            country: weather.sys.country,
+            loading: false,
+          });
+          console.log(weather);
+        })
+        .catch((err) => console.log(err));
     });
-
-    axios
-      .get(urlCurrLoc)
-      .then((response) => {
-        setData(response.data);
-        setLoading(false);
-        console.log(response.data);
-      })
-      .catch((error) => {
-        setLoading(false);
-        console.error(`Error: ${error}`);
-      });
   };
 
-  useEffect(() => {
-    getGeoLocData();
-    console.log('useefect called')
-  }, [lat, long]);
+  componentDidMount() {
+    if (navigator.geolocation) {
+      this.getCurrWeather();
+    } else {
+      alert("pls enable access to your location");
+    }
+  }
 
-  const getData = () => {
+  getInputCityWeather = () => {
+    const key = "29da4ac9ed4552e77d90788296abc187";
+    const urlCity = `https://api.openweathermap.org/data/2.5/weather?q=${this.state.location}&APPID=${key}`;
     axios
       .get(urlCity)
-      .then((response) => {
-        setData(response.data);
+      .then((res) => {
+        const weather = res.data;
+        this.setState({
+          city: weather.name,
+          description: weather.weather[0].description,
+          icon: weather.weather[0].icon,
+          temp: weather.main.temp,
+          loading: false,
+        });
+        console.log(weather);
       })
-      .catch((error) => {
-        console.log(`Error: ${error}`);
-      });
+      .catch((err) => console.log(err));
   };
 
-  useEffect(() => {
-    getData();
-  }, [urlCity]);
+  componentWillMount() {
+    if (this.state.city) {
+      this.getInputCityWeather();
+    }
+  }
 
-  const getCity = (e) => {
-    setCity(e.target.value);
+  getLocWeather = (e) => {
+    this.setState({
+      location: e.target.value,
+    });
+    console.log(e.target.value);
   };
 
-  return (
-    <div>
-      <WeatherCard
-        data={data}
-        getCity={getCity}
-        getData={getData}
-        loading={loading}
-      />
-    </div>
-  );
+  render() {
+    const { city, temp, icon, country, description, loading } = this.state;
+    return (
+      <div>
+        <WeatherCard
+          city={city}
+          temp={temp}
+          icon={icon}
+          description={description}
+          country={country}
+          loading={loading}
+          getLocWeather={this.getLocWeather}
+          getInputCityWeather={this.getInputCityWeather}
+        />
+      </div>
+    );
+  }
 }
 
 export default App;
